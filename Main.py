@@ -29,13 +29,13 @@ pathOutput = "E:/"
 # ============================================================== #
 
 # The folder where the output files of this script will be temporarily saved
-pathStorage = os.path.join(pathMain, "Files")
+pathTemporaryStorage = os.path.join(pathMain, "Files")
 
 # Final Output path folder where files will be exported
 pathOutput = os.path.join(pathOutput, "OUTPUT")
 
 # Path of the standard Excel input that is stored in each Road SNV folder
-pathInput = os.path.join(pathMain, "lib", "model_input.xlsx")
+pathInputExcel = os.path.join(pathMain, "lib", "model_input.xlsx")
 
 # Path containing the CSV file with all Roads addresses in the local network
 pathResume = os.path.join(pathMain, "lib", "Resumo.csv")
@@ -56,8 +56,8 @@ pathReportLog = os.path.join(pathMain, "lib", logName)
 # Function that creates the Main Folders for the Script to work
 def createMainFolder():
     # Create the 'Files' Folder to store temporarily the files
-    if (os.path.exists(pathStorage) is False):
-        os.mkdir(pathStorage)
+    if (os.path.exists(pathTemporaryStorage) is False):
+        os.mkdir(pathTemporaryStorage)
     # Creathe the final Output folder to store the files after verifications
     if (os.path.exists(pathOutput) is False):
         os.mkdir(pathOutput)
@@ -69,7 +69,7 @@ def createMainFolder():
         print("Could not find the Input csv with Local Network addresses")
         exit()
     # Create the standard excel input used in the IRAP Codification
-    if (os.path.isfile(pathInput) is False):
+    if (os.path.isfile(pathInputExcel) is False):
         wb = openpyxl.Workbook()  # Create sheet
         ws = wb['Sheet']  # Name of sheet
         ws.title = "_"  # Change name o sheet
@@ -94,7 +94,7 @@ def createMainFolder():
             column = openpyxl.utils.get_column_letter(i+1)
             ws.column_dimensions[column].width = list3[i]
         ws.cell(row=6, column=2).number_format = "DD/MM/YYYY"
-        wb.save(filename=(pathInput))
+        wb.save(filename=(pathInputExcel))
         wb.close()
     # Create a report log with the status of all the imports
     if (os.path.isfile(pathReportLog) is False):
@@ -103,9 +103,9 @@ def createMainFolder():
         reportLog = open(pathReportLog, "r+")
         reportLog.truncate(0)
     reportLog.writelines("Log: " + dateTime.strftime("%d/%m/%Y %H:%M:%S\n\n"))
-    reportLog.writelines("####### FAILED SNV IMPORT #######\n\n")
-    reportLog.writelines("####### SNV IMPORT ERROR ########\n\n")
-    reportLog.writelines("####### SUCESS SNV IMPORT #######\n\n")
+    reportLog.writelines("####### SYSTEM ERROR #######\n\n")
+    reportLog.writelines("####### IMPORT ERROR ########\n\n")
+    reportLog.writelines("####### SUCESS IMPORT #######\n\n")
     reportLog.close()
 
 
@@ -117,15 +117,15 @@ def updateList(nameFolder, MSG, typeMSG):
         updateLog(typeMSG)
 
 
-# function that update the Report Log txt file with all the importation status
+# function that updates the ReportLog .txt file with all the importation status
 def updateLog(condition):
     match condition:
         case "fail":
-            conditionLog = "####### FAILED SNV IMPORT #######"
+            conditionLog = "####### SYSTEM ERROR #######"
         case "problem":
-            conditionLog = "####### SNV IMPORT ERROR ########"
+            conditionLog = "####### IMPORT ERROR ########"
         case "sucess":
-            conditionLog = "####### SUCESS SNV IMPORT #######"
+            conditionLog = "####### SUCESS IMPORT #######"
     list_of_lines = (open(pathReportLog, "r")).readlines()
     for i, line in enumerate(open(pathReportLog, "r")):
         if conditionLog in line:
@@ -147,11 +147,11 @@ def excludeImportedSNV():
                 updateList(nameSNV, '', '')
 
 
-# Function that stop the script if Disk Storage is full
+# Function that stops the script if the Disk Storage is already full
 def getDiskSpace(nameFolder):
-    HD_total, HD_used, HD_freeStorage = shutil.disk_usage(pathStorage)
+    HD_total, HD_used, HD_freeStorage = shutil.disk_usage(pathTemporaryStorage)
     HD_total, HD_used, HD_freeOutput = shutil.disk_usage(pathOutput)
-    conv = 1/(1024*1024*1024)
+    conv = 1.0/(1024*1024*1024)
     if HD_freeStorage*conv <= 35 or HD_freeOutput*conv <= 35:
         updateList(nameFolder, "Not enought disk space", "fail")
         print("\n\nProgram terminated due to not enought Disk Space\n\n")
@@ -159,8 +159,8 @@ def getDiskSpace(nameFolder):
 
 
 # Set the path of folder and files of the current selected Road SNV
-def pathSet(nameFolder, addressSNV):
-    pathFolder = os.path.join(pathStorage, nameFolder)
+def setPath(nameFolder, addressSNV):
+    pathFolder = os.path.join(pathTemporaryStorage, nameFolder)
     pathImg = os.path.join(pathFolder, "Cam 1")
     pathSNV = os.path.join(pathData, addressSNV)
     pathXML = os.path.join(pathSNV, "LogsTrecho.xml")
@@ -176,21 +176,18 @@ def pathSet(nameFolder, addressSNV):
 def firstCheck(nameFolder, pathFolder, pathXML, pathVideo):
     if (os.path.isdir(pathFolder) is True):  # Folder already exists
         updateList(nameFolder, "Folder already exists", "fail")
-        # print(listSNVs[1][-1] + ": " +listSNVs[0][-1])
     if (os.path.isfile(pathXML) is False):  # Road SNV doesn't have a Log.xml
         updateList(nameFolder, "Could not find Log.xml", "fail")
-        # print(listSNVs[1][-1] + ": " +listSNVs[0][-1])
     if (pathVideo.endswith('.mp4') is False):  # Check if SNV has a valid .mp4
         updateList(nameFolder, "Could not find Video", "fail")
-        # print(listSNVs[1][-1] + ": " +listSNVs[0][-1])
 
 
 # Function that creates folders according to the input structure
 def createSNVFolder(nameFolder, pathExcel):
-    os.mkdir(os.path.join(pathStorage, nameFolder))
-    os.mkdir(os.path.join(pathStorage, nameFolder, "Cam 1"))
-    os.mkdir(os.path.join(pathStorage, nameFolder, "Cam 2"))
-    shutil.copy2(pathInput, pathExcel)
+    os.mkdir(os.path.join(pathTemporaryStorage, nameFolder))
+    os.mkdir(os.path.join(pathTemporaryStorage, nameFolder, "Cam 1"))
+    os.mkdir(os.path.join(pathTemporaryStorage, nameFolder, "Cam 2"))
+    shutil.copy2(pathInputExcel, pathExcel)
 
 
 # This function obtains the values of Odometer, frontal video timing,
@@ -245,7 +242,7 @@ def filterOdometerIRAP(Array):
     return imageArray
 
 
-# FFMPEG in the library that generates images in the "..dir/Cam 1/" folder.
+# FFMPEG in the library that generates images in the "OUTPUT/SNV/Cam 1/" folder
 # The script names the images as XXXXdum.png that will then be deleted
 def createImages(pathVideo, pathImg):
     timing = 1  # number of frames to be used for each second
@@ -319,12 +316,12 @@ def finalCheck(nameFolder, pathImg, array, extensionCSV):
     # Extension according to data in log
     extensionLog = array[0][-1]/1000
     # Estimated precision for remove list from import
-    precision = 0.2
+    precision = 0.3
     if extensionPhoto == 0:
         updateList(nameFolder, "0 Images generated", "problem")
     if extensionLog == 0:
         updateList(nameFolder, "Log = 0 km", "problem")
-    if (not array[0]) and (not array[1]):
+    if (not array[0]) or (not array[1]):
         updateList(nameFolder, "Couldn't obtain values from log", "problem")
     if abs(extensionCSV - extensionPhoto) > precision:
         eCSV = str(round(extensionCSV, 2))
@@ -374,7 +371,7 @@ def Main():
                 nameFolder = row[1] + "_" + row[0]  # Generating road name
                 addressSNV = row[8]  # Address of Road SNV in the Network
                 getDiskSpace(nameFolder)
-                allPaths = pathSet(nameFolder, addressSNV)
+                allPaths = setPath(nameFolder, addressSNV)
                 pathFolder, pathImg, pathXML, pathVideo, pathExcel = allPaths
                 firstCheck(nameFolder, pathFolder, pathXML, pathVideo)
                 if nameFolder not in listSNVs[0]:
