@@ -1,0 +1,5 @@
+lib/ffmpeg/bin/ffmpeg.exe
+lib/ffmpeg/bin/ffmpeg.rar
+lib/model_input.xlsx
+*.txt
+*__pycache__

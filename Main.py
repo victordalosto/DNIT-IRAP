@@ -11,9 +11,12 @@ import os
 import csv
 import shutil
 import glob
+import pyunpack
 import openpyxl
 import xml.etree.ElementTree as ET
+
 from datetime import datetime
+
 
 # ============================================================== #
 # Gets path of the current file
@@ -21,7 +24,7 @@ pathMain = os.getcwd()
 # pathData is the Local Network where all files are located
 pathData = "//10.100.10.219/Videos/Recebidos/"
 # pathOutput is where the output will be stored
-pathOutput = "E:/"
+pathOutput = "D:/"
 # ============================================================== #
 
 # ============================================================== #
@@ -107,6 +110,12 @@ def createMainFolder():
     reportLog.writelines("####### IMPORT ERROR ########\n\n")
     reportLog.writelines("####### SUCESS IMPORT #######\n\n")
     reportLog.close()
+    pathBin = os.path.join(pathMain, "lib", "ffmpeg", "bin")
+    pathScript = os.path.join(pathBin, "ffmpeg.exe")
+    if (not os.path.isfile(pathScript)):
+        pathRAR = os.path.join(pathBin, "ffmpeg.rar")
+        pyunpack.Archive(pathRAR).extractall(pathBin)
+        os.remove(pathRAR)
 
 
 # Function that updates the Road SNV List
